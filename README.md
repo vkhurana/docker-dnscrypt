@@ -1,5 +1,4 @@
 # Simple dnscrypt-proxy usage via Docker!
-[![Build Status](https://travis-ci.org/dnscryptio/dnscrypt-proxy-docker.svg?branch=master)](https://travis-ci.org/dnscryptio/dnscrypt-proxy-docker)
 
 # Usage
 
@@ -21,4 +20,4 @@ The above steps will build and start the container using default settings, conne
 
 # Credit
 
-The Dockerfile in this project is based on [dnscrypt-server-docker](https://github.com/jedisct1/dnscrypt-server-docker) by [Frank Denis](https://00f.net/).
+The Dockerfile in this project is based on [dnscrypt-server-docker](https://github.com/jedisct1/dnscrypt-server-docker) by [Frank Denis](https://00f.net/) and forked by me from [dnscryptio/dnscrypt-proxy-docker](https://github.com/dnscryptio/dnscrypt-proxy-docker)
