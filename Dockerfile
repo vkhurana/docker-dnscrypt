@@ -44,28 +44,6 @@ RUN set -x && \
     rm -fr /opt/dnscrypt-proxy/share && \
     rm -fr /tmp/* /var/tmp/*
 
-ENV DNSCRYPT_WRAPPER_GIT_URL https://github.com/jedisct1/dnscrypt-wrapper.git
-ENV DNSCRYPT_WRAPPER_GIT_BRANCH xchacha20
-
-COPY queue.h /tmp
-
-RUN set -x && \
-    mkdir -p /tmp/src && \
-    cd /tmp/src && \
-    git clone --branch=${DNSCRYPT_WRAPPER_GIT_BRANCH} ${DNSCRYPT_WRAPPER_GIT_URL} && \
-    cd dnscrypt-wrapper && \
-    sed -i 's#<sys/queue.h>#"/tmp/queue.h"#' compat.h && \
-    sed -i 's#HAVE_BACKTRACE#NO_BACKTRACE#' compat.h && \
-    mkdir -p /opt/dnscrypt-wrapper/empty && \
-    groupadd _dnscrypt-wrapper && \
-    useradd -g _dnscrypt-wrapper -s /etc -d /opt/dnscrypt-wrapper/empty _dnscrypt-wrapper && \
-    groupadd _dnscrypt-signer && \
-    useradd -g _dnscrypt-signer -G _dnscrypt-wrapper -s /etc -d /dev/null _dnscrypt-signer && \
-    make configure && \
-    env CFLAGS=-Ofast ./configure --prefix=/opt/dnscrypt-wrapper && \
-    make install && \
-    rm -fr /tmp/* /var/tmp/*
-
 RUN set -x && \
     apk del --purge $BUILD_DEPS && \
 rm -rf /tmp/* /var/tmp/* /usr/local/include
