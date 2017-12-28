@@ -1,4 +1,5 @@
-# Simple dnscrypt-proxy usage via Docker!
+# docker-dnscrypt
+Establishes a local DNScrypt proxy.
 
 # Usage
 
@@ -13,10 +14,11 @@ Start the container:
 The above steps will build and start the container using default settings, connecting it to dnscrypt.eu-nl server. If you would like to override this, use the following run to set variables:
 
 	docker run -d -p 127.0.0.1:53:53/udp \
-	-e RESOLVER_ADDR=1.1.1.1 \
-	-e PROVIDER_NAME=2.dnscrypt-cert.example.com \
-	-e PROVIDER_KEY=X \
+	-e RESOLVER_NAME=dnscrypt.eu-nl \
 	dnscrypt-proxy
+	
+# Information regarding resolvers
+The script fetches the latest official [dnscrypt-resolvers.csv](https://raw.githubusercontent.com/jedisct1/dnscrypt-resolvers/master/v1/dnscrypt-resolvers.csv) on every start. If your resolver key changes (typically once per year), you just need to restart the container to re-establish a connection using the new key.
 
 # Credit
 
