@@ -1,16 +1,11 @@
-FROM debian:8
-MAINTAINER dnscrypt.io
+FROM lsiobase/alpine
+MAINTAINER rix1337
 
-ENV BUILD_DEPENDENCIES \
-    autoconf \
-    bzip2 \
-    curl \
-    gcc \
-    make
+ENV BUILD_DEPS   make gcc musl-dev git ldns-dev libevent-dev expat-dev shadow autoconf file libexecinfo-dev
+ENV RUNTIME_DEPS bash util-linux coreutils findutils grep libressl ldns ldns-tools libevent expat libtool libexecinfo coreutils drill
 
 RUN set -x && \
-    apt-get update && \
-    apt-get install -y $BUILD_DEPENDENCIES # --no-install-recommends
+    apk --update upgrade && apk add $RUNTIME_DEPS $BUILD_DEPS
 
 ENV LIBSODIUM_VERSION 1.0.16
 ENV LIBSODIUM_SHA256 eeadc7e1e1bcef09680fb4837d448fbdf57224978f865ac1c16745868fbd0533
@@ -19,59 +14,65 @@ ENV LIBSODIUM_DOWNLOAD_URL https://download.libsodium.org/libsodium/releases/lib
 RUN set -x && \
     mkdir -p /tmp/src && \
     cd /tmp/src && \
-    curl -sSL $LIBSODIUM_DOWNLOAD_URL -o libsodium.tar.gz && \
+    wget -O libsodium.tar.gz $LIBSODIUM_DOWNLOAD_URL && \
     echo "${LIBSODIUM_SHA256} *libsodium.tar.gz" | sha256sum -c - && \
     tar xzf libsodium.tar.gz && \
     rm -f libsodium.tar.gz && \
     cd libsodium-${LIBSODIUM_VERSION} && \
-    ./configure --disable-dependency-tracking --enable-minimal --prefix=/opt/libsodium && \
+    env CFLAGS=-Ofast ./configure --disable-dependency-tracking && \
     make check && make install && \
-    echo /opt/libsodium/lib > /etc/ld.so.conf.d/libsodium.conf && ldconfig && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    ldconfig /usr/local/lib && \
+    rm -fr /tmp/* /var/tmp/*
 
 ENV DNSCRYPT_PROXY_VERSION 1.9.5
-ENV DNSCRYPT_PROXY_SHA256 e89f5b9039979ab392302faf369ef7593155d5ea21580402a75bbc46329d1bb6
-ENV DNSCRYPT_PROXY_DOWNLOAD_URL https://github.com/jedisct1/dnscrypt-proxy/releases/download/${DNSCRYPT_PROXY_VERSION}/dnscrypt-proxy-${DNSCRYPT_PROXY_VERSION}.tar.bz2
+ENV DNSCRYPT_PROXY_SHA256 64021fabb7d5bab0baf681796d90ecd2095fb81381e6fb317a532039025a9399
+ENV DNSCRYPT_PROXY_DOWNLOAD_URL https://download.dnscrypt.org/dnscrypt-proxy/dnscrypt-proxy-${DNSCRYPT_PROXY_VERSION}.tar.gz
 
 RUN set -x && \
     mkdir -p /tmp/src && \
     cd /tmp/src && \
-    curl -sSL $DNSCRYPT_PROXY_DOWNLOAD_URL -o dnscrypt-proxy.tar.bz2 && \
-    echo "${DNSCRYPT_PROXY_SHA256} *dnscrypt-proxy.tar.bz2" | sha256sum -c - && \
-    tar xjf dnscrypt-proxy.tar.bz2 && \
-    rm -f dnscrypt-proxy.tar.bz2 && \
+    wget -O dnscrypt-proxy.tar.gz $DNSCRYPT_PROXY_DOWNLOAD_URL && \
+    echo "${DNSCRYPT_PROXY_SHA256} *dnscrypt-proxy.tar.gz" | sha256sum -c - && \
+    tar xzf dnscrypt-proxy.tar.gz && \
+    rm -f dnscrypt-proxy.tar.gz && \
     cd dnscrypt-proxy-${DNSCRYPT_PROXY_VERSION} && \
     mkdir -p /opt/dnscrypt-proxy/empty && \
     groupadd _dnscrypt-proxy && \
     useradd -g _dnscrypt-proxy -s /etc -d /opt/dnscrypt-proxy/empty _dnscrypt-proxy && \
-    env CPPFLAGS=-I/opt/libsodium/include LDFLAGS=-L/opt/libsodium/lib \
-        ./configure --disable-dependency-tracking --prefix=/opt/dnscrypt-proxy --disable-plugins && \
+    env CFLAGS=-Os ./configure --disable-dependency-tracking --prefix=/opt/dnscrypt-proxy --disable-plugins && \
     make install && \
     rm -fr /opt/dnscrypt-proxy/share && \
     rm -fr /tmp/* /var/tmp/*
 
-RUN set -x && \
-    apt-get purge -y --auto-remove $BUILD_DEPENDENCIES && \
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+ENV DNSCRYPT_WRAPPER_GIT_URL https://github.com/jedisct1/dnscrypt-wrapper.git
+ENV DNSCRYPT_WRAPPER_GIT_BRANCH xchacha20
 
-ENV LISTEN_ADDR 0.0.0.0:53
-ENV RESOLVER_ADDR 176.56.237.171:443
-ENV PROVIDER_NAME 2.dnscrypt-cert.resolver1.dnscrypt.eu
-ENV PROVIDER_KEY 67C0:0F2C:21C5:5481:45DD:7CB4:6A27:1AF2:EB96:9931:40A3:09B6:2B8D:1653:1185:9C66 
-ENV LOGLEVEL 6
-ENV EDNS_PAYLOAD_SIZE 1252
+COPY queue.h /tmp
+
+RUN set -x && \
+    mkdir -p /tmp/src && \
+    cd /tmp/src && \
+    git clone --branch=${DNSCRYPT_WRAPPER_GIT_BRANCH} ${DNSCRYPT_WRAPPER_GIT_URL} && \
+    cd dnscrypt-wrapper && \
+    sed -i 's#<sys/queue.h>#"/tmp/queue.h"#' compat.h && \
+    sed -i 's#HAVE_BACKTRACE#NO_BACKTRACE#' compat.h && \
+    mkdir -p /opt/dnscrypt-wrapper/empty && \
+    groupadd _dnscrypt-wrapper && \
+    useradd -g _dnscrypt-wrapper -s /etc -d /opt/dnscrypt-wrapper/empty _dnscrypt-wrapper && \
+    groupadd _dnscrypt-signer && \
+    useradd -g _dnscrypt-signer -G _dnscrypt-wrapper -s /etc -d /dev/null _dnscrypt-signer && \
+    make configure && \
+    env CFLAGS=-Ofast ./configure --prefix=/opt/dnscrypt-wrapper && \
+    make install && \
+    rm -fr /tmp/* /var/tmp/*
+
+RUN set -x && \
+    apk del --purge $BUILD_DEPS && \
+rm -rf /tmp/* /var/tmp/* /usr/local/include
+
+ADD run.sh /run.sh
+RUN chmod +x /run.sh
 
 EXPOSE 53/tcp 53/udp
 
-CMD /opt/dnscrypt-proxy/sbin/dnscrypt-proxy \
-                   --user=_dnscrypt-proxy \
-                   --local-address=$LISTEN_ADDR \
-                   --provider-name=$PROVIDER_NAME \
-                   --provider-key=$PROVIDER_KEY \
-                   --resolver-address=$RESOLVER_ADDR \
-                   --loglevel=$LOGLEVEL \
-                   --edns-payload-size=$EDNS_PAYLOAD_SIZE \
-                   --ephemeral-keys \
-                   /opt/dnscrypt-proxy/etc/dnscrypt-proxy.conf
+CMD ["/run.sh"]
