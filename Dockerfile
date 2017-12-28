@@ -48,9 +48,7 @@ RUN set -x && \
     apk del --purge $BUILD_DEPS && \
 rm -rf /tmp/* /var/tmp/* /usr/local/include
 
-ADD run.sh /run.sh
-RUN chmod +x /run.sh
+# add local files
+COPY root/ /
 
 EXPOSE 53/tcp 53/udp
-
-CMD ["/run.sh"]
