@@ -1,0 +1,5 @@
+#!/usr/bin/with-contenv bash
+
+RESOLVER_NAME=${RESOLVER_NAME:-"dnscrypt.eu-nl"}
+
+/opt/dnscrypt-proxy/sbin/dnscrypt-proxy --local-address=0.0.0.0:53 --resolver-name=${RESOLVER_NAME}
