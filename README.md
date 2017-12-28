@@ -22,4 +22,4 @@ The script fetches the latest official [dnscrypt-resolvers.csv](https://raw.gith
 
 # Credit
 
-The Dockerfile in this project is based on [dnscrypt-server-docker](https://github.com/jedisct1/dnscrypt-server-docker) by [Frank Denis](https://00f.net/) and forked by me from [dnscryptio/dnscrypt-proxy-docker](https://github.com/dnscryptio/dnscrypt-proxy-docker)
+The Dockerfile in this project is based on [dnscrypt-server-docker](https://github.com/jedisct1/dnscrypt-server-docker) and the basic idea of [dnscryptio/dnscrypt-proxy-docker](https://github.com/dnscryptio/dnscrypt-proxy-docker)
