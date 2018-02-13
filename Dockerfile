@@ -1,5 +1,5 @@
-FROM lsiobase/alpine
-MAINTAINER rix1337
+FROM lsiobase/alpine.armhf
+MAINTAINER vkhurana
 
 ENV BUILD_DEPS   make gcc musl-dev git ldns-dev libevent-dev expat-dev shadow autoconf file libexecinfo-dev
 ENV RUNTIME_DEPS bash util-linux coreutils findutils grep libressl ldns ldns-tools libevent expat libtool libexecinfo coreutils drill wget
